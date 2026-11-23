@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/static/index.html"
-    }
-  ],
   "functions": {
     "*.py": {
       "excludeFiles": "{plant_disease_model.h5,tests/**,scripts/**,training_model.ipynb,.venv/**,venv/**,__pycache__/**,*.md}"
