@@ -20,6 +20,8 @@ from inference import DEFAULT_THRESHOLD, PlantDiseasePredictor
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+ASSETS_DIR = BASE_DIR / "assets"
+FRONTEND_DIR = STATIC_DIR if STATIC_DIR.is_dir() else ASSETS_DIR
 ALLOWED_MIME_TYPES: frozenset[str] = frozenset(
     {"image/jpeg", "image/png", "image/webp"}
 )
@@ -65,8 +67,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-if STATIC_DIR.is_dir():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+if FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 
 def _get_predictor(request: Request) -> PlantDiseasePredictor:
@@ -112,7 +114,7 @@ def _extract_drive_file_id(url: str) -> str | None:
 @app.get("/", include_in_schema=False)
 async def serve_index() -> FileResponse:
     """Serve the redesigned minimalist diagnostic web interface."""
-    index_path = STATIC_DIR / "index.html"
+    index_path = FRONTEND_DIR / "index.html"
     if not index_path.is_file():
         raise HTTPException(status_code=404, detail="Frontend assets not found.")
     return FileResponse(index_path)
