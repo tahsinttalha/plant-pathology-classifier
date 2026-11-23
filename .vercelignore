@@ -1,0 +1,16 @@
+plant_disease_model.h5
+training_model.ipynb
+tests/
+scripts/
+.venv/
+venv/
+.git/
+.devcontainer/
+.vscode/
+__pycache__/
+*.pyc
+.pytest_cache/
+Dockerfile
+.dockerignore
+requirements-dev.txt
+README.md

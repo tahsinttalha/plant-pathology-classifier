@@ -1,0 +1,12 @@
+.vscode/
+.venv/
+venv/
+test/
+train/
+valid/
+*.keras
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.log
