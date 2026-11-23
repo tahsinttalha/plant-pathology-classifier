@@ -1,0 +1,944 @@
+/* ==========================================================================
+   Plant Pathology Classifier — Ultra-Clean Minimalist Composer & Report UI
+   Stark paper canvas, emerald ink, warm beige metadata, crisp 1px borders
+   on every box, zero drop shadows, modern chatbot foreground/background flow.
+   ========================================================================== */
+
+:root {
+  --bg-paper: #F7F7F5;
+  --ink-primary: #004D24;
+  --ink-secondary: #CBAC65;
+  --ink-muted: #5C6B61;
+  --border-primary: #004D24;
+  --border-strong: #111111;
+  --border-subtle: #D6D6D2;
+  --accent-confident: #00D062;
+  --accent-uncertain: #B45309;
+
+  --surface-box: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(247, 247, 245, 0.94) 100%
+  );
+  --surface-tint: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(203, 172, 101, 0.10) 100%
+  );
+  --surface-confident: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(0, 208, 98, 0.08) 100%
+  );
+  --surface-uncertain: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(180, 83, 9, 0.08) 100%
+  );
+
+  --font-sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --heading-size: clamp(2rem, 4.2vw, 3.25rem);
+  --composer-max: 720px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  box-shadow: none;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--bg-paper);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.micro-label {
+  display: inline-block;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--ink-primary);
+}
+
+.micro-label--meta {
+  color: var(--ink-secondary);
+}
+
+/* ==========================================================================
+   App Shell States: Landing (Empty Calm Center) vs Report (Chatbot Flow)
+   ========================================================================== */
+
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+body.state-report .app-shell {
+  justify-content: flex-start;
+  padding: 2rem 1.25rem 12.5rem;
+}
+
+/* ==========================================================================
+   1 & 2. Centered Heading, 35% Subheading & Borderless Intro Block
+   ========================================================================== */
+
+.hero {
+  width: 100%;
+  max-width: var(--composer-max);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.35rem;
+  margin-bottom: 2.15rem;
+}
+
+.hero__titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hero__heading {
+  margin: 0;
+  font-size: var(--heading-size);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+  text-align: center;
+  color: var(--ink-primary);
+}
+
+.hero__subheading {
+  margin: 0;
+  font-size: calc(var(--heading-size) * 0.35);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--ink-secondary);
+}
+
+/* Explicitly NO border on the intro block */
+.hero__intro {
+  margin: 0;
+  max-width: 60ch;
+  border: none;
+  padding: 0;
+  background: transparent;
+  font-size: 0.9375rem;
+  line-height: 1.62;
+  text-align: center;
+  color: var(--ink-primary);
+  opacity: 0.86;
+}
+
+/* ==========================================================================
+   3. Center Rounded Composer Box (Foreground) & Format Warning
+   ========================================================================== */
+
+.composer-dock {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+}
+
+/* Chatbot-style pinned center box once report is active */
+body.state-report .composer-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.85rem 1.25rem 1.15rem;
+  background: linear-gradient(
+    180deg,
+    rgba(247, 247, 245, 0) 0%,
+    rgba(247, 247, 245, 0.92) 26%,
+    #F7F7F5 100%
+  );
+}
+
+.composer-wrap {
+  position: relative;
+  width: 100%;
+  max-width: var(--composer-max);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.center-box {
+  width: 100%;
+  border: 1px solid var(--border-primary);
+  border-radius: 26px;
+  background: var(--surface-box);
+  padding: 0.95rem 1.1rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.center-box.is-dragover {
+  border-color: var(--accent-confident);
+  border-style: dashed;
+  background: var(--surface-confident);
+}
+
+.center-box__prompt {
+  border: 1px dashed var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.15rem 1.1rem;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(247, 247, 245, 0.55);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+body.state-report .center-box__prompt {
+  padding: 0.65rem 0.95rem;
+}
+
+.center-box__prompt:hover,
+.center-box__prompt:focus-visible {
+  outline: none;
+  border-color: var(--border-primary);
+  background: rgba(0, 77, 36, 0.03);
+}
+
+.center-box__prompt-text {
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+}
+
+.center-box__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Left-aligned bordered icon boxes */
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.icon-box {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.icon-box svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.icon-box:hover,
+.icon-box:focus-visible,
+.icon-box[aria-expanded="true"] {
+  outline: none;
+  background: rgba(0, 77, 36, 0.07);
+}
+
+/* Right-aligned bordered threshold dropdown toggle box */
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.threshold-toggle-box {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 36px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  background: var(--surface-tint);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.threshold-toggle-box svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.threshold-toggle-box .chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 140ms ease;
+}
+
+.threshold-toggle-box[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+.threshold-toggle-box:hover,
+.threshold-toggle-box:focus-visible {
+  outline: none;
+  background: rgba(203, 172, 101, 0.22);
+}
+
+.threshold-toggle-box__val {
+  font-weight: 500;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: #FFFFFF;
+}
+
+/* Toggleable Dropdown Popovers (Bordered Boxes) */
+.popover-box {
+  position: absolute;
+  bottom: calc(100% + 0.55rem);
+  border: 1px solid var(--border-primary);
+  border-radius: 18px;
+  background: #FFFFFF;
+  padding: 0.95rem 1.05rem;
+  z-index: 40;
+}
+
+.threshold-popover {
+  right: 0;
+  width: min(290px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.drive-popover {
+  left: 0;
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.popover-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.popover-close {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-paper);
+  color: var(--ink-primary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.popover-close:hover {
+  border-color: var(--border-primary);
+}
+
+.threshold-val-box {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--bg-paper);
+}
+
+.threshold-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--border-strong);
+  outline: none;
+  cursor: pointer;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  background: var(--ink-primary);
+  border: 2px solid #FFFFFF;
+  outline: 1px solid var(--ink-primary);
+  cursor: pointer;
+}
+
+.threshold-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  background: var(--ink-primary);
+  border: 2px solid #FFFFFF;
+  outline: 1px solid var(--ink-primary);
+  cursor: pointer;
+}
+
+.threshold-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--ink-secondary);
+}
+
+.drive-form {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.drive-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  background: var(--bg-paper);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+}
+
+.drive-input:focus {
+  outline: none;
+  background: #FFFFFF;
+}
+
+.drive-submit-btn {
+  appearance: none;
+  height: 36px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  background: var(--ink-primary);
+  color: #F7F7F5;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.drive-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.popover-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+/* Very small format warning underneath the center box */
+.format-warning {
+  margin: 0.55rem 0 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ink-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* ==========================================================================
+   5. Report Stage (Behind/Above the Pinned Center Box like Modern Chatbots)
+   ========================================================================== */
+
+.report-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.report-canvas {
+  width: 100%;
+  max-width: var(--composer-max);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.report-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.report-box {
+  border: 1px solid var(--border-primary);
+  border-radius: 22px;
+  background: var(--surface-box);
+  padding: 1.25rem 1.45rem;
+}
+
+.report-box--error {
+  border-color: var(--accent-uncertain);
+  background: var(--surface-uncertain);
+}
+
+.report-box__err-label {
+  color: var(--accent-uncertain);
+}
+
+.report-box__err-text {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: var(--accent-uncertain);
+}
+
+/* Specimen Summary Card */
+.specimen-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+}
+
+.specimen-card__thumb-box {
+  width: 60px;
+  height: 60px;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #FFFFFF;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.specimen-card__thumb-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.specimen-card__details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.specimen-card__name {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.specimen-card__meta {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--ink-secondary);
+}
+
+.reset-box {
+  appearance: none;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.reset-box:hover {
+  background: rgba(0, 77, 36, 0.07);
+}
+
+/* Loading Card */
+.loading-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--ink-primary);
+}
+
+.loading-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: var(--accent-confident);
+  animation: pulse 1s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Primary Diagnosis Card */
+.diagnosis-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.diagnosis-card--confident {
+  border-color: var(--border-primary);
+  background: var(--surface-confident);
+}
+
+.diagnosis-card--uncertain {
+  border-color: var(--accent-uncertain);
+  background: var(--surface-uncertain);
+}
+
+.diagnosis-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.status-box {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.status-box--confident {
+  color: var(--ink-primary);
+  border-color: var(--accent-confident);
+  background: rgba(0, 208, 98, 0.15);
+}
+
+.status-box--uncertain {
+  color: var(--accent-uncertain);
+  border-color: var(--accent-uncertain);
+  background: rgba(180, 83, 9, 0.12);
+}
+
+.diagnosis-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.diagnosis-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.diagnosis-rule {
+  height: 1px;
+  width: 100%;
+  background: var(--border-subtle);
+}
+
+.diagnosis-species {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.diagnosis-pathology {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.uncertain-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.uncertain-readout__kicker {
+  color: var(--accent-uncertain);
+}
+
+.uncertain-readout__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.22;
+  color: var(--accent-uncertain);
+}
+
+.uncertain-readout__subnote {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-primary);
+  opacity: 0.85;
+}
+
+/* Metrics Row */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.metric-box__value {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.metric-box__sub {
+  font-size: 0.7rem;
+  color: var(--ink-secondary);
+  letter-spacing: 0.04em;
+}
+
+/* Top-3 Ranked Breakdown with 2px Hairline Bars */
+.ranked-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.ranked-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ranked-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ranked-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ranked-item__row {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.ranked-item__rank {
+  font-size: 0.74rem;
+  color: var(--ink-secondary);
+}
+
+.ranked-item__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.ranked-item__species {
+  color: var(--ink-secondary);
+}
+
+.ranked-item__score {
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.hairline-track {
+  width: 100%;
+  height: 2px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.hairline-fill {
+  height: 2px;
+  background: var(--ink-primary);
+  transition: width 200ms ease;
+}
+
+.hairline-fill--confident {
+  background: var(--accent-confident);
+}
+
+.hairline-fill--uncertain {
+  background: var(--accent-uncertain);
+}
+
+/* Expandable Technical Note inside Report */
+.tech-note {
+  padding: 0.95rem 1.45rem;
+}
+
+.tech-note__summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.tech-note__summary::-webkit-details-marker {
+  display: none;
+}
+
+.tech-note__plus {
+  font-size: 1rem;
+  transition: transform 140ms ease;
+}
+
+.tech-note[open] .tech-note__plus {
+  transform: rotate(45deg);
+}
+
+.tech-note__body {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-primary);
+  opacity: 0.86;
+}
+
+/* ==========================================================================
+   Responsive Mobile Polish
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 1.75rem 0.9rem;
+  }
+
+  body.state-report .app-shell {
+    padding: 1.25rem 0.9rem 13.5rem;
+  }
+
+  .center-box {
+    border-radius: 22px;
+    padding: 0.85rem;
+  }
+
+  .icon-box {
+    padding: 0 0.6rem;
+  }
+
+  .icon-box__label {
+    display: none;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .specimen-card {
+    flex-wrap: wrap;
+  }
+
+  .drive-form {
+    flex-direction: column;
+  }
+}

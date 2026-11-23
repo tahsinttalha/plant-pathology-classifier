@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plant Pathology Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="state-landing">
+  <div class="app-shell">
+    <!-- Landing Hero: Visible only before an image is uploaded -->
+    <header id="hero-header" class="hero">
+      <div class="hero__titles">
+        <h1 class="hero__heading">Plant Pathology Classifier</h1>
+        <p class="hero__subheading">
+          A Computer Vision Diagnostic designed and implemented by @tahsinttalha
+        </p>
+      </div>
+
+      <p class="hero__intro">
+        Upload a leaf photograph to run pathology inference.<br />
+        The classifier evaluates 38 PlantVillage crop-disease classes from an unscaled
+        <span class="mono-tabular">128&times;128</span> RGB tensor and withholds a disease label
+        whenever top-1 probability falls below the active safety threshold.
+      </p>
+    </header>
+
+    <!-- Report Stage: Shown behind/above the pinned center box once an image is uploaded -->
+    <main id="report-stage" class="report-stage" aria-live="polite" hidden>
+      <div class="report-canvas">
+        <!-- Inline Error Card -->
+        <div id="error-box" class="report-box report-box--error" role="alert" hidden>
+          <span id="error-label" class="micro-label report-box__err-label">INPUT REJECTED</span>
+          <p id="error-message" class="report-box__err-text"></p>
+        </div>
+
+        <!-- Specimen Preview + Status Strip -->
+        <section id="specimen-box" class="report-box specimen-card" hidden>
+          <div class="specimen-card__thumb-box">
+            <img id="preview-img" alt="Uploaded plant leaf specimen" />
+          </div>
+          <div class="specimen-card__details">
+            <span class="micro-label micro-label--meta">SPECIMEN ANALYSED</span>
+            <p id="specimen-name" class="specimen-card__name">&mdash;</p>
+            <p id="specimen-meta" class="specimen-card__meta mono-tabular">&mdash;</p>
+          </div>
+          <button
+            id="new-scan-btn"
+            type="button"
+            class="action-box reset-box"
+            title="Clear report and return to start"
+          >
+            New Scan
+          </button>
+        </section>
+
+        <!-- Loading State -->
+        <section id="loading-box" class="report-box loading-card" hidden>
+          <span class="loading-dot" aria-hidden="true"></span>
+          <span class="mono-tabular">Running CNN inference on 128&times;128 RGB tensor&hellip;</span>
+        </section>
+
+        <!-- Generated Diagnostic Report -->
+        <div id="report-content" class="report-content" hidden>
+          <!-- Primary Diagnosis Box -->
+          <article id="primary-box" class="report-box diagnosis-card">
+            <div class="diagnosis-card__top">
+              <span class="micro-label micro-label--meta">DIAGNOSTIC REPORT</span>
+              <span id="status-badge" class="status-box mono-tabular">CONFIDENT</span>
+            </div>
+
+            <div id="confident-readout" class="diagnosis-split">
+              <div class="diagnosis-field">
+                <span class="micro-label micro-label--meta">CROP SPECIES</span>
+                <p id="crop-species" class="diagnosis-species">&mdash;</p>
+              </div>
+              <div class="diagnosis-rule" aria-hidden="true"></div>
+              <div class="diagnosis-field">
+                <span class="micro-label micro-label--meta">PATHOLOGY / CONDITION</span>
+                <h2 id="pathology-name" class="diagnosis-pathology">&mdash;</h2>
+              </div>
+            </div>
+
+            <div id="uncertain-readout" class="uncertain-readout" hidden>
+              <span class="micro-label uncertain-readout__kicker">DIAGNOSIS WITHHELD</span>
+              <h2 id="uncertain-message" class="uncertain-readout__title">
+                Uncertain &mdash; upload a clearer, single-leaf photograph
+              </h2>
+              <p id="uncertain-subnote" class="uncertain-readout__subnote"></p>
+            </div>
+          </article>
+
+          <!-- Confidence & Latency Metric Boxes -->
+          <div class="metrics-grid">
+            <div class="report-box metric-box">
+              <span class="micro-label micro-label--meta">TOP-1 CONFIDENCE</span>
+              <p id="metric-confidence" class="metric-box__value mono-tabular">&mdash;</p>
+              <span id="metric-gate" class="metric-box__sub mono-tabular">&mdash;</span>
+            </div>
+            <div class="report-box metric-box">
+              <span class="micro-label micro-label--meta">INFERENCE LATENCY</span>
+              <p id="metric-latency" class="metric-box__value mono-tabular">&mdash;</p>
+              <span class="metric-box__sub mono-tabular">PREPROCESS + FORWARD PASS</span>
+            </div>
+          </div>
+
+          <!-- Top-3 Ranked Breakdown Box -->
+          <section class="report-box ranked-box">
+            <div class="ranked-box__header">
+              <span class="micro-label">TOP-3 RANKED PREDICTIONS</span>
+              <span class="micro-label micro-label--meta">SOFTMAX PROBABILITY</span>
+            </div>
+            <ol id="top-predictions-list" class="ranked-list"></ol>
+          </section>
+
+          <!-- Expandable Technical Note Box -->
+          <details class="report-box tech-note">
+            <summary class="tech-note__summary">
+              <span class="micro-label">WHY LOW-CONFIDENCE REJECTION MATTERS</span>
+              <span class="tech-note__plus mono-tabular" aria-hidden="true">+</span>
+            </summary>
+            <p class="tech-note__body">
+              Closed-set softmax classifiers always force probabilities to sum to 100% across the
+              38 PlantVillage classes, even on blurry or non-leaf inputs. Enforcing the safety
+              threshold (default <span class="mono-tabular">0.75</span>) converts ambiguous outputs
+              into an explicit <strong>Uncertain</strong> status instead of emitting a misleading
+              false-positive disease label.
+            </p>
+          </details>
+        </div>
+      </div>
+    </main>
+
+    <!-- Center Composer Box (Centered on landing; pinned foreground bar during report) -->
+    <section id="composer-dock" class="composer-dock" aria-label="Leaf specimen upload controls">
+      <div class="composer-wrap">
+        <!-- Toggleable Google Drive Import Popover -->
+        <div id="drive-popover" class="popover-box drive-popover" hidden>
+          <div class="popover-box__header">
+            <span class="micro-label">GOOGLE DRIVE IMPORT</span>
+            <button
+              id="drive-close-btn"
+              type="button"
+              class="popover-close mono-tabular"
+              aria-label="Close Google Drive panel"
+            >
+              &times;
+            </button>
+          </div>
+          <form id="drive-form" class="drive-form">
+            <input
+              id="drive-url-input"
+              class="drive-input"
+              type="url"
+              placeholder="Paste public Google Drive file link (drive.google.com/file/d/...)"
+              required
+            />
+            <button type="submit" class="drive-submit-btn">Import</button>
+          </form>
+          <p class="popover-hint">
+            Requires a public Google Drive image link (&ldquo;Anyone with the link&rdquo;).
+          </p>
+        </div>
+
+        <!-- Toggleable Threshold Gate Dropdown Slider Popover -->
+        <div id="threshold-popover" class="popover-box threshold-popover" hidden>
+          <div class="popover-box__header">
+            <label for="threshold-slider" class="micro-label">THRESHOLD GATE</label>
+            <span id="threshold-popover-val" class="threshold-val-box mono-tabular">0.75</span>
+          </div>
+          <input
+            id="threshold-slider"
+            class="threshold-slider"
+            type="range"
+            min="0.50"
+            max="0.95"
+            step="0.01"
+            value="0.75"
+            aria-label="Adjust confidence threshold gate between 0.50 and 0.95"
+          />
+          <div class="threshold-scale mono-tabular">
+            <span>0.50</span>
+            <span>0.75 DEFAULT</span>
+            <span>0.95</span>
+          </div>
+        </div>
+
+        <!-- Main Rounded Center Box -->
+        <div
+          id="center-box"
+          class="center-box"
+          role="region"
+          aria-label="Specimen drop zone and input toolbar"
+        >
+          <input
+            id="file-input"
+            class="visually-hidden"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/*"
+          />
+          <input
+            id="camera-input"
+            class="visually-hidden"
+            type="file"
+            accept="image/*"
+            capture="environment"
+          />
+
+          <!-- Drop Prompt Area inside the Center Box -->
+          <div id="drop-prompt" class="center-box__prompt" role="button" tabindex="0">
+            <span id="drop-prompt-text" class="center-box__prompt-text">
+              Drop a leaf photograph here, or choose an input below
+            </span>
+          </div>
+
+          <!-- Bottom Action Bar: Left-Aligned Bordered Icons + Right-Aligned Threshold Dropdown Toggle -->
+          <div class="center-box__bar">
+            <div class="toolbar-left" role="group" aria-label="Image input methods">
+              <!-- Upload File Icon Box -->
+              <button
+                id="btn-upload"
+                type="button"
+                class="icon-box"
+                title="Upload image from device"
+                aria-label="Upload image from device"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5" />
+                  <path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" />
+                </svg>
+                <span class="icon-box__label">Upload</span>
+              </button>
+
+              <!-- Drag & Drop Icon Box -->
+              <button
+                id="btn-drop"
+                type="button"
+                class="icon-box"
+                title="Drag and drop a leaf photo onto this box"
+                aria-label="Drag and drop image"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" stroke-dasharray="3 2.5" />
+                  <path d="M9 12h6M12 9v6" />
+                </svg>
+                <span class="icon-box__label">Drag &amp; Drop</span>
+              </button>
+
+              <!-- Camera Capture Icon Box -->
+              <button
+                id="btn-camera"
+                type="button"
+                class="icon-box"
+                title="Capture leaf photograph with camera"
+                aria-label="Capture leaf photograph with camera"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 8.5A2 2 0 0 1 6 6.5h2.2l1.3-2h5l1.3 2H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9Z" />
+                  <circle cx="12" cy="13" r="3.2" />
+                </svg>
+                <span class="icon-box__label">Camera</span>
+              </button>
+
+              <!-- Google Drive Icon Box -->
+              <button
+                id="btn-drive"
+                type="button"
+                class="icon-box"
+                title="Import leaf photograph from Google Drive"
+                aria-label="Import from Google Drive"
+                aria-expanded="false"
+                aria-controls="drive-popover"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.5 4h7l5.5 9.5-3.5 6H6.5L3 13.5 8.5 4Z" />
+                  <path d="M8.5 4 14 13.5M3 13.5h18M11 19.5l5.5-9.5" />
+                </svg>
+                <span class="icon-box__label">Drive</span>
+              </button>
+            </div>
+
+            <!-- Right-Aligned Toggleable Threshold Gate Dropdown Button -->
+            <div class="toolbar-right">
+              <button
+                id="btn-threshold-toggle"
+                type="button"
+                class="threshold-toggle-box"
+                aria-expanded="false"
+                aria-controls="threshold-popover"
+                title="Adjust confidence threshold gate"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M4 17h16" />
+                  <circle cx="9" cy="7" r="2.2" fill="#F7F7F5" />
+                  <circle cx="15" cy="17" r="2.2" fill="#F7F7F5" />
+                </svg>
+                <span class="threshold-toggle-box__text">Gate</span>
+                <span id="threshold-btn-val" class="threshold-toggle-box__val mono-tabular">0.75</span>
+                <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Very Small Format Warning Text Underneath the Box -->
+        <p class="format-warning">
+          Accepted formats: JPEG, PNG, WEBP (max 15 MB). Use a well-lit, single-leaf photograph for reliable classification.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
